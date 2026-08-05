@@ -1,0 +1,4 @@
+debug: true
+db:
+  dbuser: app
+  dbname: aethervault

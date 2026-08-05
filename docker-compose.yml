@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:18.4-trixie
+    environment:
+      POSTGRES_DB: aethervault
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: REPLACEME # TODO: change this password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:

@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"reflect"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/jackc/pgx/v5"
+	"github.com/joshey40/database_aethervault/internal/api"
 	"github.com/joshey40/database_aethervault/internal/config"
 	dbconn "github.com/joshey40/database_aethervault/internal/db/gen"
 	"github.com/joshey40/database_aethervault/internal/logger"
@@ -80,8 +82,11 @@ func run() error {
 }
 
 func main() {
-	err := run()
-	if err != nil {
-		logger.L().Error("Some kind of error", zap.Error(err))
-	}
+	r := api.Router()
+	http.ListenAndServe(":3333", r)
+
+	// err := run()
+	// if err != nil {
+	// 	logger.L().Error("Some kind of error", zap.Error(err))
+	// }
 }

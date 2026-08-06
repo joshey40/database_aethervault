@@ -14,8 +14,10 @@ type Config struct {
 }
 
 type DB struct {
+	Host string `koanf:"host"`
 	User string `koanf:"dbuser"`
 	Name string `koanf:"dbname"`
+	Port int    `koanf:"port"`
 }
 
 func LoadConf(path string) (*Config, error) {

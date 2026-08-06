@@ -22,8 +22,8 @@ func run() error {
 		logger.L().Error("Error loading config", zap.Error(err))
 		return err
 	}
-	connectionString := fmt.Sprintf("user=%s dbname=%s password=REPLACEME", config.DB.User, config.DB.Name)
-
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=REPLACEME", config.DB.Host, config.DB.Port, config.DB.User, config.DB.Name)
+	logger.L().Info("", zap.String("Connection String", connectionString))
 	conn, err := pgx.Connect(ctx, connectionString)
 	if err != nil {
 		return err

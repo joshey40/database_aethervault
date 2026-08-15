@@ -2,7 +2,8 @@
 CREATE TABLE IF NOT EXISTS users (
   uuid uuid DEFAULT uuidv7() PRIMARY KEY,
   username text UNIQUE NOT NULL,
-  pwhash text NOT NULL
+  pwhash text NOT NULL,
+  role int NOT NULL
 );
 
 -- name: ListUsers :many
@@ -11,9 +12,9 @@ ORDER BY uuid;
 
 -- name: CreateUser :one
 INSERT INTO users (
-  username, pwhash
+  username, pwhash, role
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 ) RETURNING *;
 
 -- name: GetUserByName :one

@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Debug bool `koanf:"debug"`
 	DB    DB   `koanf:"db"`
+	API   API  `koanf:"api"`
 }
 
 type DB struct {
@@ -18,6 +19,10 @@ type DB struct {
 	User string `koanf:"dbuser"`
 	Name string `koanf:"dbname"`
 	Port int    `koanf:"port"`
+}
+
+type API struct {
+	Port int `koanf:"port"`
 }
 
 func LoadConf(path string) (*Config, error) {

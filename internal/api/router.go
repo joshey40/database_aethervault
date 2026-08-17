@@ -1,13 +1,18 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joshey40/database_aethervault/internal/config"
+	"github.com/joshey40/database_aethervault/internal/handler"
+	"github.com/joshey40/database_aethervault/internal/logger"
+	"go.uber.org/zap"
 )
 
-func Router() http.Handler {
+func StartRouter(config *config.Config, h *handler.UserHandler) {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -16,10 +21,10 @@ func Router() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Hello there"))
-		})
+		r.Put("/register/", h.CreateUser)
 	})
 
-	return r
+	listenString := fmt.Sprintf(":%d", config.API.Port)
+	logger.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
+	http.ListenAndServe(listenString, r)
 }

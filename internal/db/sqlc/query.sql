@@ -1,6 +1,6 @@
 -- name: CreateUserTable :exec
 CREATE TABLE IF NOT EXISTS users (
-  uuid uuid DEFAULT uuidv7() PRIMARY KEY,
+  user_id uuid DEFAULT uuidv7() PRIMARY KEY,
   username text UNIQUE NOT NULL,
   pwhash text NOT NULL,
   role int NOT NULL
@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- name: ListUsers :many
 SELECT * FROM users
-ORDER BY uuid;
+ORDER BY user_id;
 
 -- name: CreateUser :one
 INSERT INTO users (
@@ -23,13 +23,13 @@ WHERE username = $1 Limit 1;
 
 -- name: GetUserByUUID :one
 SELECT * FROM users 
-WHERE uuid = $1 Limit 1;
+WHERE user_id = $1 Limit 1;
 
 -- name: DeleteUser :exec
 DELETE FROM users
-WHERE uuid = $1;
+WHERE user_id = $1;
 
 -- name: UpdateUserPW :exec
 UPDATE users
   set pwhash = $2
-WHERE uuid = $1;
+WHERE user_id = $1;

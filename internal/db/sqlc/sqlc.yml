@@ -5,6 +5,6 @@ sql:
     schema: "schema.sql"
     gen:
       go:
-        package: "dbconn"
+        package: "dbqueries"
         out: "../gen"
         sql_package: "pgx/v5"

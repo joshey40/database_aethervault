@@ -3,7 +3,7 @@
 //   sqlc v1.31.1
 // source: query.sql
 
-package dbconn
+package dbqueries
 
 import (
 	"context"
@@ -16,7 +16,7 @@ INSERT INTO users (
   username, pwhash, role
 ) VALUES (
   $1, $2, $3
-) RETURNING uuid, username, pwhash, role
+) RETURNING user_id, username, pwhash, role
 `
 
 type CreateUserParams struct {
@@ -29,7 +29,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Pwhash, arg.Role)
 	var i User
 	err := row.Scan(
-		&i.Uuid,
+		&i.UserID,
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
@@ -39,7 +39,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 
 const createUserTable = `-- name: CreateUserTable :exec
 CREATE TABLE IF NOT EXISTS users (
-  uuid uuid DEFAULT uuidv7() PRIMARY KEY,
+  user_id uuid DEFAULT uuidv7() PRIMARY KEY,
   username text UNIQUE NOT NULL,
   pwhash text NOT NULL,
   role int NOT NULL
@@ -53,16 +53,16 @@ func (q *Queries) CreateUserTable(ctx context.Context) error {
 
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
-WHERE uuid = $1
+WHERE user_id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, uuid pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUser, uuid)
+func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, userID)
 	return err
 }
 
 const getUserByName = `-- name: GetUserByName :one
-SELECT uuid, username, pwhash, role FROM users 
+SELECT user_id, username, pwhash, role FROM users 
 WHERE username = $1 Limit 1
 `
 
@@ -70,7 +70,7 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 	row := q.db.QueryRow(ctx, getUserByName, username)
 	var i User
 	err := row.Scan(
-		&i.Uuid,
+		&i.UserID,
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
@@ -79,15 +79,15 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 }
 
 const getUserByUUID = `-- name: GetUserByUUID :one
-SELECT uuid, username, pwhash, role FROM users 
-WHERE uuid = $1 Limit 1
+SELECT user_id, username, pwhash, role FROM users 
+WHERE user_id = $1 Limit 1
 `
 
-func (q *Queries) GetUserByUUID(ctx context.Context, uuid pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByUUID, uuid)
+func (q *Queries) GetUserByUUID(ctx context.Context, userID pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByUUID, userID)
 	var i User
 	err := row.Scan(
-		&i.Uuid,
+		&i.UserID,
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
@@ -96,8 +96,8 @@ func (q *Queries) GetUserByUUID(ctx context.Context, uuid pgtype.UUID) (User, er
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT uuid, username, pwhash, role FROM users
-ORDER BY uuid
+SELECT user_id, username, pwhash, role FROM users
+ORDER BY user_id
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -110,7 +110,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
-			&i.Uuid,
+			&i.UserID,
 			&i.Username,
 			&i.Pwhash,
 			&i.Role,
@@ -128,15 +128,15 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 const updateUserPW = `-- name: UpdateUserPW :exec
 UPDATE users
   set pwhash = $2
-WHERE uuid = $1
+WHERE user_id = $1
 `
 
 type UpdateUserPWParams struct {
-	Uuid   pgtype.UUID
+	UserID pgtype.UUID
 	Pwhash string
 }
 
 func (q *Queries) UpdateUserPW(ctx context.Context, arg UpdateUserPWParams) error {
-	_, err := q.db.Exec(ctx, updateUserPW, arg.Uuid, arg.Pwhash)
+	_, err := q.db.Exec(ctx, updateUserPW, arg.UserID, arg.Pwhash)
 	return err
 }

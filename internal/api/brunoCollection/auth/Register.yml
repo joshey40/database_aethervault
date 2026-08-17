@@ -1,0 +1,21 @@
+info:
+  name: Register
+  type: http
+  seq: 1
+
+http:
+  method: PUT
+  url: "{{localhost}}/auth/register/"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "hello"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

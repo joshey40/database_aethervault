@@ -2,14 +2,14 @@
 // versions:
 //   sqlc v1.31.1
 
-package dbconn
+package dbqueries
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type User struct {
-	Uuid     pgtype.UUID
+	UserID   pgtype.UUID
 	Username string
 	Pwhash   string
 	Role     int32

@@ -11,8 +11,22 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createDB = `-- name: CreateDB :exec
+CREATE TABLE IF NOT EXISTS Users (
+  user_id uuid DEFAULT uuidv7() PRIMARY KEY,
+  username text UNIQUE NOT NULL,
+  pwhash text NOT NULL,
+  role int NOT NULL
+)
+`
+
+func (q *Queries) CreateDB(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, createDB)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (
+INSERT INTO Users (
   username, pwhash, role
 ) VALUES (
   $1, $2, $3
@@ -37,22 +51,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const createUserTable = `-- name: CreateUserTable :exec
-CREATE TABLE IF NOT EXISTS users (
-  user_id uuid DEFAULT uuidv7() PRIMARY KEY,
-  username text UNIQUE NOT NULL,
-  pwhash text NOT NULL,
-  role int NOT NULL
-)
-`
-
-func (q *Queries) CreateUserTable(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, createUserTable)
-	return err
-}
-
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users
+DELETE FROM Users
 WHERE user_id = $1
 `
 
@@ -62,7 +62,7 @@ func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.UUID) error {
 }
 
 const getUserByName = `-- name: GetUserByName :one
-SELECT user_id, username, pwhash, role FROM users 
+SELECT user_id, username, pwhash, role FROM Users 
 WHERE username = $1 Limit 1
 `
 
@@ -79,7 +79,7 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 }
 
 const getUserByUUID = `-- name: GetUserByUUID :one
-SELECT user_id, username, pwhash, role FROM users 
+SELECT user_id, username, pwhash, role FROM Users 
 WHERE user_id = $1 Limit 1
 `
 
@@ -96,7 +96,7 @@ func (q *Queries) GetUserByUUID(ctx context.Context, userID pgtype.UUID) (User, 
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT user_id, username, pwhash, role FROM users
+SELECT user_id, username, pwhash, role FROM Users
 ORDER BY user_id
 `
 
@@ -126,7 +126,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 const updateUserPW = `-- name: UpdateUserPW :exec
-UPDATE users
+UPDATE Users
   set pwhash = $2
 WHERE user_id = $1
 `

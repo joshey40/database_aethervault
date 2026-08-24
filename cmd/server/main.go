@@ -34,6 +34,12 @@ func main() {
 	// create sql queries based upon the connection pool
 	queries := dbqueries.New(pool)
 
+	// create db layout
+	err = queries.CreateDB(ctx)
+	if err != nil {
+		logger.L().Error("Creating initial DB strucure failed", zap.Error(err))
+	}
+	logger.L().Info("Initial DB structure created")
 	// create services
 	userService := services.NewUserService(pool, queries)
 

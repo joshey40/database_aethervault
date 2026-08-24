@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Device struct {
+	DeviceUuid pgtype.UUID
+	UserID     pgtype.UUID
+	LastSeen   pgtype.Timestamptz
+	LoginToken string
+	DeviceName string
+}
+
 type User struct {
 	UserID   pgtype.UUID
 	Username string

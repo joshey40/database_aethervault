@@ -1,10 +1,9 @@
 package handler
 
 import (
-	"io"
 	"net/http"
-	"strings"
 
+	"github.com/go-chi/render"
 	"github.com/joshey40/database_aethervault/internal/logger"
 	"github.com/joshey40/database_aethervault/internal/services"
 	"go.uber.org/zap"
@@ -22,10 +21,29 @@ func NewUserHandler(sv *services.UserService) *UserHandler {
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
-	cont := new(strings.Builder)
-	n, err := io.Copy(cont, r.Body)
+	newUser := &RegisterData{}
+	err := render.Bind(r, newUser)
 	if err != nil {
 		logger.L().Error("Reading Body of CreateUser api call failed", zap.Error(err))
+		render.Render(w, r, ErrInvalidRequest(err))
 	}
-	logger.L().Info("Reading of Body successful", zap.String("Body content", cont.String()), zap.Int("Num Bytes read", int(n)))
+	logger.L().Info("Reading of Body successful", zap.String("username", newUser.Username), zap.String("passwd", newUser.Passwd))
+	// create user here
+	_, err = h.sv.CreateUser(r.Context(), newUser.Username, newUser.Passwd, 0)
+
+	render.Status(r, http.StatusCreated)
+	render.Render(w, r, UserCreated())
+}
+
+func UserCreated() *UserCreatedResponse {
+	return &UserCreatedResponse{}
+}
+
+func ErrInvalidRequest(err error) render.Renderer {
+	return &ErrResponse{
+		Err:            err,
+		HTTPStatusCode: 400,
+		StatusText:     "Invalid request.",
+		ErrorText:      err.Error(),
+	}
 }

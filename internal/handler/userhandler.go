@@ -39,11 +39,11 @@ func UserCreated() *UserCreatedResponse {
 	return &UserCreatedResponse{}
 }
 
-func ErrInvalidRequest(err error) render.Renderer {
+func ErrInvalidRequest(err error) *ErrResponse {
 	return &ErrResponse{
 		Err:            err,
 		HTTPStatusCode: 400,
-		StatusText:     "Invalid request.",
+		StatusText:     "Invalid request",
 		ErrorText:      err.Error(),
 	}
 }

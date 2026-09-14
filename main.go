@@ -2,24 +2,30 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joshey40/database_aethervault/internal/api"
 	"github.com/joshey40/database_aethervault/internal/config"
 	dbqueries "github.com/joshey40/database_aethervault/internal/db/gen"
 	"github.com/joshey40/database_aethervault/internal/handler"
 	"github.com/joshey40/database_aethervault/internal/logger"
 	"github.com/joshey40/database_aethervault/internal/services"
+	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
+
+//go:embed internal/db/migrations/*.sql
+var embeddedMigrations embed.FS
 
 func main() {
 	// create main context
 	ctx := context.Background()
 
 	// load config
-	config, err := config.LoadConf("../../config.yml")
+	config, err := config.LoadConf("config.yml")
 	if err != nil {
 		logger.L().Error("Loading config failed", zap.Error(err))
 	}
@@ -35,11 +41,22 @@ func main() {
 	queries := dbqueries.New(pool)
 
 	// create db layout
-	err = queries.CreateDB(ctx)
+	goose.SetBaseFS(embeddedMigrations)
+	err = goose.SetDialect("postgres")
 	if err != nil {
-		logger.L().Error("Creating initial DB strucure failed", zap.Error(err))
+		logger.L().Error("Setting goose dialect failed", zap.Error(err))
+	}
+	db := stdlib.OpenDBFromPool(pool)
+	err = goose.Up(db, "internal/db/migrations")
+	if err != nil {
+		logger.L().Error("Creating DB structure failed", zap.Error(err))
+	}
+	err = db.Close()
+	if err != nil {
+		logger.L().Error("Closing the initial db connection failed", zap.Error(err))
 	}
 	logger.L().Info("Initial DB structure created")
+
 	// create services
 	userService := services.NewUserService(pool, queries)
 

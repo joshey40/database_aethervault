@@ -9,3 +9,11 @@ To regenerate the code (i.e. after a change), use the command
 ```bash
 sqlc generate -f internal/db/sqlc/sqlc.yml
 ```
+
+## Add database migration
+Do not change the existing migrations. Every change is done with another migration step.
+
+To add a new migration, execute this command in the migration folder
+```bash
+goose -s create [name] sql
+```

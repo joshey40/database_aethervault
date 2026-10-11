@@ -19,9 +19,10 @@ func StartRouter(config *config.Config, h *handler.UserHandler) {
 	r.Use(middleware.ClientIPFromRemoteAddr)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.StripSlashes)
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Put("/register/", h.CreateUser)
+		r.Put("/register", h.CreateUser)
 		// r.POST("/login/", h.LoginUser)
 	})
 

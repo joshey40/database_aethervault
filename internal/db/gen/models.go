@@ -9,7 +9,7 @@ import (
 )
 
 type Device struct {
-	DeviceUuid pgtype.UUID
+	DeviceID   pgtype.UUID
 	UserID     pgtype.UUID
 	LastSeen   pgtype.Timestamptz
 	LoginToken string

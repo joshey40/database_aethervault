@@ -1,19 +1,3 @@
--- name: CreateDB :exec
-CREATE TABLE IF NOT EXISTS Users (
-  user_id uuid DEFAULT uuidv7() PRIMARY KEY,
-  username text UNIQUE NOT NULL,
-  pwhash text NOT NULL,
-  role int NOT NULL
-);
-CREATE TABLE IF NOT EXISTS Devices (
-	device_uuid uuid DEFAULT uuidv7() PRIMARY KEY,
-	user_id uuid NOT NULL,
-	last_seen timestamp with time zone NOT NULL,
-	login_token text NOT NULL,
-	device_name text NOT NULL,
-  CONSTRAINT Devices_fk0 FOREIGN KEY (user_id) REFERENCES Users(uuid)
-);
-
 -- name: ListUsers :many
 SELECT * FROM Users
 ORDER BY user_id;
@@ -27,11 +11,11 @@ INSERT INTO Users (
 
 -- name: GetUserByName :one
 SELECT * FROM Users 
-WHERE username = $1 Limit 1;
+WHERE username = $1 LIMIT 1;
 
--- name: GetUserByUUID :one
+-- name: GetUserByID :one
 SELECT * FROM Users 
-WHERE user_id = $1 Limit 1;
+WHERE user_id = $1 LIMIT 1;
 
 -- name: DeleteUser :exec
 DELETE FROM Users
@@ -41,3 +25,26 @@ WHERE user_id = $1;
 UPDATE Users
   set pwhash = $2
 WHERE user_id = $1;
+
+-- name: ListDevices :many
+SELECT * FROM Devices
+ORDER BY device_id;
+
+-- name: CreateDevice :one
+INSERT INTO Devices (
+  user_id, last_seen, login_token, device_name
+) VALUES (
+  $1, $2, $3, $4
+) RETURNING *;
+
+-- name: GetAllDevicesFromUser :many
+SELECT * FROM Devices
+WHERE user_id = $1;
+
+-- name: GetDeviceByID :one
+SELECT * FROM Devices
+WHERE device_id = $1 LIMIT 1;
+
+-- name: CheckLoginTokenForUser :one
+SELECT * From Devices
+WHERE user_id = $1 AND login_token = $2 LIMIT 1;

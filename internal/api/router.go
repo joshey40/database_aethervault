@@ -22,6 +22,7 @@ func StartRouter(config *config.Config, h *handler.UserHandler) {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Put("/register/", h.CreateUser)
+		// r.POST("/login/", h.LoginUser)
 	})
 
 	listenString := fmt.Sprintf(":%d", config.API.Port)

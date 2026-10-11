@@ -34,7 +34,7 @@ func main() {
 	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=REPLACEME", config.DB.Host, config.DB.Port, config.DB.User, config.DB.Name)
 	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
-		logger.L().Error("Creating db pool failed", zap.Error(err))
+		logger.L().Fatal("Creating db pool failed", zap.Error(err))
 	}
 
 	// create sql queries based upon the connection pool
@@ -44,16 +44,16 @@ func main() {
 	goose.SetBaseFS(embeddedMigrations)
 	err = goose.SetDialect("postgres")
 	if err != nil {
-		logger.L().Error("Setting goose dialect failed", zap.Error(err))
+		logger.L().Fatal("Setting goose dialect failed", zap.Error(err))
 	}
 	db := stdlib.OpenDBFromPool(pool)
 	err = goose.Up(db, "internal/db/migrations")
 	if err != nil {
-		logger.L().Error("Creating DB structure failed", zap.Error(err))
+		logger.L().Fatal("Creating DB structure failed", zap.Error(err))
 	}
 	err = db.Close()
 	if err != nil {
-		logger.L().Error("Closing the initial db connection failed", zap.Error(err))
+		logger.L().Fatal("Closing the initial db connection failed", zap.Error(err))
 	}
 	logger.L().Info("Initial DB structure created")
 

@@ -7,28 +7,40 @@ import (
 )
 
 type RegisterData struct {
-	Username string `json:"username"`
-	Passwd   string `json:"passwd"`
+	Username   string `json:"username"`
+	Passwd     string `json:"passwd"`
+	DeviceName string `json:"currDevice"`
 }
 
 func (rd *RegisterData) Bind(r *http.Request) error {
 	return nil
 }
 
+type LoginData struct {
+	Username string `json:"username"`
+	Passwd   string `json:"passwd"`
+}
+
+func (rd *LoginData) Bind(r *http.Request) error {
+	return nil
+}
+
 type UserCreatedResponse struct {
+	UserID    string `json:"userID"`
+	DeviceID  string `json:"deviceID"`
+	AuthToken string `json:"authToken"`
 }
 
 func (us *UserCreatedResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type ErrResponse struct {
-	Err            error `json:"-"` // low-level runtime error
-	HTTPStatusCode int   `json:"-"` // http response status code
+type LoginSuccessRespone struct {
+}
 
-	StatusText string `json:"status"`          // user-level status message
-	AppCode    int64  `json:"code,omitempty"`  // application-specific error code
-	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
+type ErrResponse struct {
+	HTTPStatusCode int    `json:"-"`
+	StatusText     string `json:"status"`
 }
 
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {

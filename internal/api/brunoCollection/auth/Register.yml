@@ -11,7 +11,8 @@ http:
     data: |-
       {
         "username": "hello",
-        "passwd": "IAmSoSecureXD"
+        "passwd": "IAmSoSecureXD",
+        "currDevice": "Surfraze"
       }
   auth: inherit
 
@@ -20,3 +21,4 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
+  forwardAuthorizationHeader: true

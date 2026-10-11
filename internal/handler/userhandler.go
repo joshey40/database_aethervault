@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -25,25 +26,43 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	err := render.Bind(r, newUser)
 	if err != nil {
 		logger.L().Error("Reading Body of CreateUser api call failed", zap.Error(err))
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Render(w, r, MakeErrResponse(400, services.ErrInvalidRequest.Error()))
+		return
 	}
+	// TODO: rework this log message
 	logger.L().Info("Reading of Body successful", zap.String("username", newUser.Username), zap.String("passwd", newUser.Passwd))
+
 	// create user here
-	_, err = h.sv.CreateUser(r.Context(), newUser.Username, newUser.Passwd, 0)
+	createdUser, createdDevice, err := h.sv.CreateUser(r.Context(), newUser.Username, newUser.Passwd, 0, newUser.DeviceName)
+	if err != nil {
+		logger.L().Error("Error creating new User", zap.Error(err))
+		if errors.Is(err, services.ErrUserAlreadyExists) {
+			render.Render(w, r, MakeErrResponse(409, err.Error()))
+		} else {
+			render.Render(w, r, MakeErrResponse(500, services.ErrInternalError.Error()))
+		}
+		return
+	}
 
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, UserCreated())
+	render.Render(w, r, UserCreated(createdUser.UserID.String(), createdDevice.DeviceID.String(), createdDevice.LoginToken))
 }
 
-func UserCreated() *UserCreatedResponse {
-	return &UserCreatedResponse{}
+func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+
 }
 
-func ErrInvalidRequest(err error) *ErrResponse {
+func UserCreated(userID string, deviceID string, token string) *UserCreatedResponse {
+	return &UserCreatedResponse{
+		UserID:    userID,
+		DeviceID:  deviceID,
+		AuthToken: token,
+	}
+}
+
+func MakeErrResponse(status int, text string) *ErrResponse {
 	return &ErrResponse{
-		Err:            err,
-		HTTPStatusCode: 400,
-		StatusText:     "Invalid request",
-		ErrorText:      err.Error(),
+		HTTPStatusCode: status,
+		StatusText:     text,
 	}
 }

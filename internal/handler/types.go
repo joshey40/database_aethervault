@@ -17,8 +17,7 @@ func (rd *RegisterData) Bind(r *http.Request) error {
 }
 
 type LoginData struct {
-	Username string `json:"username"`
-	Passwd   string `json:"passwd"`
+	RegisterData
 }
 
 func (rd *LoginData) Bind(r *http.Request) error {
@@ -26,8 +25,6 @@ func (rd *LoginData) Bind(r *http.Request) error {
 }
 
 type UserCreatedResponse struct {
-	UserID    string `json:"userID"`
-	DeviceID  string `json:"deviceID"`
 	AuthToken string `json:"authToken"`
 }
 
@@ -36,6 +33,11 @@ func (us *UserCreatedResponse) Render(w http.ResponseWriter, r *http.Request) er
 }
 
 type LoginSuccessRespone struct {
+	AuthToken string `json:"authToken"`
+}
+
+func (us *LoginSuccessRespone) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 type ErrResponse struct {

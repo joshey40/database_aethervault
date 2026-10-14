@@ -32,9 +32,9 @@ ORDER BY device_id;
 
 -- name: CreateDevice :one
 INSERT INTO Devices (
-  user_id, last_seen, login_token, device_name
+  user_id, last_seen, device_name
 ) VALUES (
-  $1, $2, $3, $4
+  $1, $2, $3
 ) RETURNING *;
 
 -- name: GetAllDevicesFromUser :many
@@ -45,6 +45,3 @@ WHERE user_id = $1;
 SELECT * FROM Devices
 WHERE device_id = $1 LIMIT 1;
 
--- name: CheckLoginTokenForUser :one
-SELECT * From Devices
-WHERE user_id = $1 AND login_token = $2 LIMIT 1;

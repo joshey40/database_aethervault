@@ -33,7 +33,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	logger.L().Info("Reading of Body successful", zap.String("username", newUser.Username), zap.String("passwd", newUser.Passwd))
 
 	// create user here
-	createdUser, createdDevice, err := h.sv.CreateUser(r.Context(), newUser.Username, newUser.Passwd, 0, newUser.DeviceName)
+	token, err := h.sv.CreateUser(r.Context(), newUser.Username, newUser.Passwd, 0, newUser.DeviceName)
 	if err != nil {
 		logger.L().Error("Error creating new User", zap.Error(err))
 		if errors.Is(err, services.ErrUserAlreadyExists) {
@@ -43,21 +43,40 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
+	response := &UserCreatedResponse{
+		AuthToken: token,
+	}
 	render.Status(r, http.StatusCreated)
-	render.Render(w, r, UserCreated(createdUser.UserID.String(), createdDevice.DeviceID.String(), createdDevice.LoginToken))
+	render.Render(w, r, response)
 }
 
 func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	loginData := &LoginData{}
+	err := render.Bind(r, loginData)
+	if err != nil {
+		logger.L().Error("Reading Body of Login api call failed", zap.Error(err))
+		render.Render(w, r, MakeErrResponse(400, services.ErrInvalidRequest.Error()))
+		return
+	}
 
-}
+	// TODO: rework this log message
+	logger.L().Info("Reading of Body successful", zap.String("username", loginData.Username), zap.String("passwd", loginData.Passwd))
 
-func UserCreated(userID string, deviceID string, token string) *UserCreatedResponse {
-	return &UserCreatedResponse{
-		UserID:    userID,
-		DeviceID:  deviceID,
+	token, err := h.sv.LoginUser(r.Context(), loginData.Username, loginData.Passwd, loginData.DeviceName)
+	if err != nil {
+		if errors.Is(err, services.ErrInvalidLoginData) {
+			render.Render(w, r, MakeErrResponse(401, err.Error()))
+		} else {
+			render.Render(w, r, MakeErrResponse(500, services.ErrInternalError.Error()))
+		}
+		return
+	}
+	response := &LoginSuccessRespone{
 		AuthToken: token,
 	}
+
+	render.Status(r, http.StatusCreated)
+	render.Render(w, r, response)
 }
 
 func MakeErrResponse(status int, text string) *ErrResponse {

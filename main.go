@@ -4,9 +4,12 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"os"
 
+	"github.com/go-chi/jwtauth/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	"github.com/joshey40/database_aethervault/internal/api"
 	"github.com/joshey40/database_aethervault/internal/config"
 	dbqueries "github.com/joshey40/database_aethervault/internal/db/gen"
@@ -30,8 +33,20 @@ func main() {
 		logger.L().Error("Loading config failed", zap.Error(err))
 	}
 
+	// load env file and vars
+	err = godotenv.Load()
+	if err != nil {
+		logger.L().Error("Loading Env file failed", zap.Error(err))
+	}
+
+	dbpasswd := os.Getenv("DBPASSWD")
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	// generate jokenAuth from secret
+	tokenAuth := jwtauth.New("HS256", []byte(jwtSecret), nil)
+
 	// create connection to database via connection pool. This ensures concurrency
-	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=REPLACEME", config.DB.Host, config.DB.Port, config.DB.User, config.DB.Name)
+	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", config.DB.Host, config.DB.Port, config.DB.User, config.DB.Name, dbpasswd)
 	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
 		logger.L().Fatal("Creating db pool failed", zap.Error(err))
@@ -58,11 +73,11 @@ func main() {
 	logger.L().Info("Initial DB structure created")
 
 	// create services
-	userService := services.NewUserService(pool, queries)
+	userService := services.NewUserService(pool, queries, tokenAuth)
 
 	// create handlers
 	userHandler := handler.NewUserHandler(userService)
 
 	// creating and starting the router
-	api.StartRouter(config, userHandler)
+	api.StartRouter(config, userHandler, tokenAuth)
 }

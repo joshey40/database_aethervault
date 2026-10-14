@@ -11,57 +11,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const checkLoginTokenForUser = `-- name: CheckLoginTokenForUser :one
-SELECT device_id, user_id, last_seen, login_token, device_name From Devices
-WHERE user_id = $1 AND login_token = $2 LIMIT 1
-`
-
-type CheckLoginTokenForUserParams struct {
-	UserID     pgtype.UUID
-	LoginToken string
-}
-
-func (q *Queries) CheckLoginTokenForUser(ctx context.Context, arg CheckLoginTokenForUserParams) (Device, error) {
-	row := q.db.QueryRow(ctx, checkLoginTokenForUser, arg.UserID, arg.LoginToken)
-	var i Device
-	err := row.Scan(
-		&i.DeviceID,
-		&i.UserID,
-		&i.LastSeen,
-		&i.LoginToken,
-		&i.DeviceName,
-	)
-	return i, err
-}
-
 const createDevice = `-- name: CreateDevice :one
 INSERT INTO Devices (
-  user_id, last_seen, login_token, device_name
+  user_id, last_seen, device_name
 ) VALUES (
-  $1, $2, $3, $4
-) RETURNING device_id, user_id, last_seen, login_token, device_name
+  $1, $2, $3
+) RETURNING device_id, user_id, last_seen, device_name
 `
 
 type CreateDeviceParams struct {
 	UserID     pgtype.UUID
 	LastSeen   pgtype.Timestamptz
-	LoginToken string
 	DeviceName string
 }
 
 func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error) {
-	row := q.db.QueryRow(ctx, createDevice,
-		arg.UserID,
-		arg.LastSeen,
-		arg.LoginToken,
-		arg.DeviceName,
-	)
+	row := q.db.QueryRow(ctx, createDevice, arg.UserID, arg.LastSeen, arg.DeviceName)
 	var i Device
 	err := row.Scan(
 		&i.DeviceID,
 		&i.UserID,
 		&i.LastSeen,
-		&i.LoginToken,
 		&i.DeviceName,
 	)
 	return i, err
@@ -104,7 +74,7 @@ func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.UUID) error {
 }
 
 const getAllDevicesFromUser = `-- name: GetAllDevicesFromUser :many
-SELECT device_id, user_id, last_seen, login_token, device_name FROM Devices
+SELECT device_id, user_id, last_seen, device_name FROM Devices
 WHERE user_id = $1
 `
 
@@ -121,7 +91,6 @@ func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID)
 			&i.DeviceID,
 			&i.UserID,
 			&i.LastSeen,
-			&i.LoginToken,
 			&i.DeviceName,
 		); err != nil {
 			return nil, err
@@ -135,7 +104,7 @@ func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID)
 }
 
 const getDeviceByID = `-- name: GetDeviceByID :one
-SELECT device_id, user_id, last_seen, login_token, device_name FROM Devices
+SELECT device_id, user_id, last_seen, device_name FROM Devices
 WHERE device_id = $1 LIMIT 1
 `
 
@@ -146,7 +115,6 @@ func (q *Queries) GetDeviceByID(ctx context.Context, deviceID pgtype.UUID) (Devi
 		&i.DeviceID,
 		&i.UserID,
 		&i.LastSeen,
-		&i.LoginToken,
 		&i.DeviceName,
 	)
 	return i, err
@@ -187,7 +155,7 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 }
 
 const listDevices = `-- name: ListDevices :many
-SELECT device_id, user_id, last_seen, login_token, device_name FROM Devices
+SELECT device_id, user_id, last_seen, device_name FROM Devices
 ORDER BY device_id
 `
 
@@ -204,7 +172,6 @@ func (q *Queries) ListDevices(ctx context.Context) ([]Device, error) {
 			&i.DeviceID,
 			&i.UserID,
 			&i.LastSeen,
-			&i.LoginToken,
 			&i.DeviceName,
 		); err != nil {
 			return nil, err

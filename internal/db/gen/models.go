@@ -12,7 +12,6 @@ type Device struct {
 	DeviceID   pgtype.UUID
 	UserID     pgtype.UUID
 	LastSeen   pgtype.Timestamptz
-	LoginToken string
 	DeviceName string
 }
 

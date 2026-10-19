@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/joshey40/database_aethervault/internal/config"
 	"github.com/joshey40/database_aethervault/internal/handler"
-	"github.com/joshey40/database_aethervault/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -28,6 +27,6 @@ func StartRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtau
 	})
 
 	listenString := fmt.Sprintf(":%d", config.API.Port)
-	logger.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
+	zap.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
 	http.ListenAndServe(listenString, r)
 }

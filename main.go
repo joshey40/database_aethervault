@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/go-chi/jwtauth/v5"
@@ -30,13 +31,19 @@ func main() {
 	// load config
 	config, err := config.LoadConf("config.yml")
 	if err != nil {
-		logger.L().Error("Loading config failed", zap.Error(err))
+		log.Fatalf("Loading config failed, error: %v", err)
 	}
+
+	// create and setup logger
+	log := logger.CreateLogger(config)
+	defer log.Sync()
+	zap.ReplaceGlobals(log)
+	zap.RedirectStdLog(log)
 
 	// load env file and vars
 	err = godotenv.Load()
 	if err != nil {
-		logger.L().Error("Loading Env file failed", zap.Error(err))
+		zap.L().Error("Loading Env file failed", zap.Error(err))
 	}
 
 	dbpasswd := os.Getenv("DBPASSWD")
@@ -49,7 +56,7 @@ func main() {
 	connectionString := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s", config.DB.Host, config.DB.Port, config.DB.User, config.DB.Name, dbpasswd)
 	pool, err := pgxpool.New(ctx, connectionString)
 	if err != nil {
-		logger.L().Fatal("Creating db pool failed", zap.Error(err))
+		zap.L().Fatal("Creating db pool failed", zap.Error(err))
 	}
 
 	// create sql queries based upon the connection pool
@@ -59,18 +66,18 @@ func main() {
 	goose.SetBaseFS(embeddedMigrations)
 	err = goose.SetDialect("postgres")
 	if err != nil {
-		logger.L().Fatal("Setting goose dialect failed", zap.Error(err))
+		zap.L().Fatal("Setting goose dialect failed", zap.Error(err))
 	}
 	db := stdlib.OpenDBFromPool(pool)
 	err = goose.Up(db, "internal/db/migrations")
 	if err != nil {
-		logger.L().Fatal("Creating DB structure failed", zap.Error(err))
+		zap.L().Fatal("Creating DB structure failed", zap.Error(err))
 	}
 	err = db.Close()
 	if err != nil {
-		logger.L().Fatal("Closing the initial db connection failed", zap.Error(err))
+		zap.L().Fatal("Closing the initial db connection failed", zap.Error(err))
 	}
-	logger.L().Info("Initial DB structure created")
+	zap.L().Info("Initial DB structure created")
 
 	// create services
 	userService := services.NewUserService(pool, queries, tokenAuth)

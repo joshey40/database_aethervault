@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	dbqueries "github.com/joshey40/database_aethervault/internal/db/gen"
-	"github.com/joshey40/database_aethervault/internal/logger"
 	"go.uber.org/zap"
 )
 
@@ -73,14 +72,14 @@ func (s *UserService) LoginUser(ctx context.Context, username string, passwd str
 	// get user
 	user, err := s.Queries.GetUserByName(ctx, username)
 	if err != nil {
-		logger.L().Warn("login tried for nonexisting user", zap.String("username", username), zap.Error(err))
+		zap.L().Warn("login tried for nonexisting user", zap.String("username", username), zap.Error(err))
 		return "", ErrInvalidLoginData
 	}
 
 	// check password
 	match, err := argon2id.ComparePasswordAndHash(passwd, user.Pwhash)
 	if !match {
-		logger.L().Warn("login attempt with wrong password", zap.String("username", username))
+		zap.L().Warn("login attempt with wrong password", zap.String("username", username))
 		return "", ErrInvalidLoginData
 	}
 

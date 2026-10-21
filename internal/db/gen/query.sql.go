@@ -63,6 +63,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteDevice = `-- name: DeleteDevice :exec
+DELETE FROM Devices
+WHERE device_id = $1
+`
+
+func (q *Queries) DeleteDevice(ctx context.Context, deviceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDevice, deviceID)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM Users
 WHERE user_id = $1

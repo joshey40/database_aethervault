@@ -45,3 +45,6 @@ WHERE user_id = $1;
 SELECT * FROM Devices
 WHERE device_id = $1 LIMIT 1;
 
+-- name: DeleteDevice :exec
+DELETE FROM Devices
+WHERE device_id = $1;

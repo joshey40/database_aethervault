@@ -24,6 +24,13 @@ func StartRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtau
 	r.Route("/auth", func(r chi.Router) {
 		r.Put("/register", h.CreateUser)
 		r.Post("/login", h.LoginUser)
+		r.Route("/logout", func(r chi.Router) {
+			r.Use(jwtauth.Verifier(tokenAuth))
+			r.Use(jwtauth.Authenticator(tokenAuth))
+
+			r.Post("/", h.LogoutUser)
+
+		})
 	})
 
 	listenString := fmt.Sprintf(":%d", config.API.Port)

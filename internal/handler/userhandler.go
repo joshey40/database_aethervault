@@ -37,7 +37,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, services.ErrUserAlreadyExists) {
 			render.Render(w, r, MakeErrResponse(409, err.Error()))
 		} else {
-			render.Render(w, r, MakeErrResponse(500, services.ErrInternalError.Error()))
+			render.Render(w, r, MakeErrResponse(500, services.ErrInternal.Error()))
 		}
 		return
 	}
@@ -64,7 +64,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, services.ErrInvalidLoginData) {
 			render.Render(w, r, MakeErrResponse(401, err.Error()))
 		} else {
-			render.Render(w, r, MakeErrResponse(500, services.ErrInternalError.Error()))
+			render.Render(w, r, MakeErrResponse(500, services.ErrInternal.Error()))
 		}
 		return
 	}
@@ -74,6 +74,19 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusCreated)
 	render.Render(w, r, response)
+}
+
+func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+	err := h.sv.LogoutUser(r.Context())
+	if err != nil {
+		if errors.Is(err, services.ErrAlreadyLoggedout) {
+			render.Render(w, r, MakeErrResponse(400, err.Error()))
+		} else {
+			render.Render(w, r, MakeErrResponse(500, err.Error()))
+		}
+		return
+	}
+	render.Status(r, http.StatusOK)
 }
 
 func MakeErrResponse(status int, text string) *ErrResponse {

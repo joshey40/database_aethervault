@@ -100,3 +100,55 @@ func (s *UserService) LoginUser(ctx context.Context, username string, passwd str
 
 	return tokenString, nil
 }
+
+func (s *UserService) LogoutUser(ctx context.Context) error {
+	userID, deviceID, err := checkJWT(ctx)
+	if err != nil {
+		zap.L().Error("could not logout user")
+		return err
+	}
+
+	deviceUUID := &pgtype.UUID{}
+	err = deviceUUID.Scan(deviceID)
+	if err != nil {
+		zap.L().Error("could not logout user")
+		return err
+	}
+	device, err := s.Queries.GetDeviceByID(ctx, *deviceUUID)
+	if err != nil {
+		zap.L().Warn("logout attempt for already logged-out device", zap.String("deviceID", deviceID))
+		return ErrAlreadyLoggedout
+	}
+	userUUID := device.UserID.String()
+	if userID != userUUID {
+		zap.L().Error("userID of jwt did not match userID of the provided device", zap.String("userID-jwt", userID), zap.String("userID-device", userUUID))
+		return ErrInternal
+	}
+
+	err = s.Queries.DeleteDevice(ctx, *deviceUUID)
+	if err != nil {
+		zap.L().Error("could not delete existing device", zap.Error(err))
+		return ErrInternal
+	}
+	return nil
+}
+
+func checkJWT(ctx context.Context) (string, string, error) {
+	_, claims, err := jwtauth.FromContext(ctx)
+	if err != nil {
+		zap.L().Error("getting the claims fomr the context failed", zap.Error(err))
+		return "", "", ErrInternal
+	}
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		zap.L().Error("claims did not contain user_id or user_id was no string")
+		return "", "", ErrInternal
+	}
+	deviceID, ok := claims["device_id"].(string)
+	if !ok {
+		zap.L().Error("claims did not contain device_id or device_id was no string")
+		return "", "", ErrInternal
+	}
+
+	return userID, deviceID, nil
+}

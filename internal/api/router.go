@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -9,18 +8,20 @@ import (
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/joshey40/database_aethervault/internal/config"
 	"github.com/joshey40/database_aethervault/internal/handler"
-	"go.uber.org/zap"
 )
 
-func StartRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtauth.JWTAuth) {
+func CreateRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtauth.JWTAuth) http.Handler {
+	// creating new Router
 	r := chi.NewRouter()
 
+	// registering base middleware stack
 	r.Use(middleware.RequestID)
 	r.Use(middleware.ClientIPFromRemoteAddr)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.StripSlashes)
 
+	// adding "/auth" route to router to handle user login, logout and register
 	r.Route("/auth", func(r chi.Router) {
 		r.Put("/register", h.CreateUser)
 		r.Post("/login", h.LoginUser)
@@ -33,7 +34,5 @@ func StartRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtau
 		})
 	})
 
-	listenString := fmt.Sprintf(":%d", config.API.Port)
-	zap.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
-	http.ListenAndServe(listenString, r)
+	return r
 }

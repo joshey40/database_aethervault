@@ -94,8 +94,11 @@ func main() {
 	// create handlers
 	userHandler := handler.NewUserHandler(userService)
 
+	// create middlewares
+	middlewares := api.NewMiddlewares(userService)
+
 	// creating  the router
-	r := api.CreateRouter(config, userHandler, tokenAuth)
+	r := api.CreateRouter(config, userHandler, middlewares, tokenAuth)
 	listenString := fmt.Sprintf(":%d", config.API.Port)
 
 	// creating the server

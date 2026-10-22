@@ -10,7 +10,7 @@ import (
 	"github.com/joshey40/database_aethervault/internal/handler"
 )
 
-func CreateRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwtauth.JWTAuth) http.Handler {
+func CreateRouter(config *config.Config, h *handler.UserHandler, mw *Middlewares, tokenAuth *jwtauth.JWTAuth) http.Handler {
 	// creating new Router
 	r := chi.NewRouter()
 
@@ -27,7 +27,7 @@ func CreateRouter(config *config.Config, h *handler.UserHandler, tokenAuth *jwta
 		r.Post("/login", h.LoginUser)
 		r.Route("/logout", func(r chi.Router) {
 			r.Use(jwtauth.Verifier(tokenAuth))
-			r.Use(jwtauth.Authenticator(tokenAuth))
+			r.Use(mw.Authenticator(tokenAuth))
 
 			r.Post("/", h.LogoutUser)
 

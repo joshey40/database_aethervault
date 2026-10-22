@@ -48,3 +48,7 @@ WHERE device_id = $1 LIMIT 1;
 -- name: DeleteDevice :exec
 DELETE FROM Devices
 WHERE device_id = $1;
+
+-- name: GetDeviceByIDAndUserID :one
+SELECT * FROM Devices
+WHERE device_id = $1 and user_id = $2 LIMIT 1;

@@ -79,11 +79,7 @@ func (h *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	err := h.sv.LogoutUser(r.Context())
 	if err != nil {
-		if errors.Is(err, services.ErrAlreadyLoggedout) {
-			render.Render(w, r, MakeErrResponse(400, err.Error()))
-		} else {
-			render.Render(w, r, MakeErrResponse(500, err.Error()))
-		}
+		render.Render(w, r, MakeErrResponse(500, err.Error()))
 		return
 	}
 	render.Status(r, http.StatusOK)

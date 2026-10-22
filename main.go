@@ -3,9 +3,14 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -26,7 +31,8 @@ var embeddedMigrations embed.FS
 
 func main() {
 	// create main context
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	// load config
 	config, err := config.LoadConf("config.yml")
@@ -39,6 +45,9 @@ func main() {
 	defer log.Sync()
 	zap.ReplaceGlobals(log)
 	zap.RedirectStdLog(log)
+
+	zap.L().Info("Welcome to the AETHERVAULT server")
+	zap.L().Info("Have fun building your decks and managing your collection")
 
 	// load env file and vars
 	err = godotenv.Load()
@@ -85,6 +94,34 @@ func main() {
 	// create handlers
 	userHandler := handler.NewUserHandler(userService)
 
-	// creating and starting the router
-	api.StartRouter(config, userHandler, tokenAuth)
+	// creating  the router
+	r := api.CreateRouter(config, userHandler, tokenAuth)
+	listenString := fmt.Sprintf(":%d", config.API.Port)
+
+	// creating the server
+	server := http.Server{
+		Addr:    listenString,
+		Handler: r,
+	}
+
+	// starting the server
+	go func() {
+		zap.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			zap.L().Fatal("server stopped for weird reason", zap.Error(err))
+		}
+	}()
+
+	<-ctx.Done()
+	zap.L().Info("shutdown signal received")
+	stop()
+
+	exitCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	zap.L().Info("shutting down http server")
+	err = server.Shutdown(exitCtx)
+	if err != nil {
+		log.Fatal("server could not be stopped gracefully", zap.Error(err))
+	}
 }

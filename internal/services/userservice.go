@@ -141,15 +141,15 @@ func (s *UserService) CheckJWT(ctx context.Context) (string, string, error) {
 		return "", "", ErrInternal
 	}
 
-	device, err := s.Queries.GetDeviceByID(ctx, *deviceUUID)
-	if err != nil {
-		zap.L().Warn("Device was not found", zap.String("DeviceID", deviceUUID.String()))
-		return "", "", ErrDeviceNotFound
+	query := dbqueries.GetDeviceByIDAndUserIDParams{
+		DeviceID: *deviceUUID,
+		UserID:   *userUUID,
 	}
-	_, err = s.Queries.GetUserByID(ctx, *userUUID)
+
+	device, err := s.Queries.GetDeviceByIDAndUserID(ctx, query)
 	if err != nil {
-		zap.L().Warn("User was not found", zap.String("UserID", userUUID.String()))
-		return "", "", ErrUserNotFound
+		zap.L().Warn("Device with this deviceID for user with this userID not found", zap.String("DeviceID", deviceUUID.String()), zap.String("UserID", userUUID.String()))
+		return "", "", ErrDeviceNotFound
 	}
 	if device.UserID.String() != userUUID.String() {
 		zap.L().Error("userID of jwt did not match userID of the provided device", zap.String("userID-jwt", userID), zap.String("userID-device", userUUID.String()))

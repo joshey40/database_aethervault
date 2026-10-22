@@ -130,6 +130,28 @@ func (q *Queries) GetDeviceByID(ctx context.Context, deviceID pgtype.UUID) (Devi
 	return i, err
 }
 
+const getDeviceByIDAndUserID = `-- name: GetDeviceByIDAndUserID :one
+SELECT device_id, user_id, last_seen, device_name FROM Devices
+WHERE device_id = $1 and user_id = $2 LIMIT 1
+`
+
+type GetDeviceByIDAndUserIDParams struct {
+	DeviceID pgtype.UUID
+	UserID   pgtype.UUID
+}
+
+func (q *Queries) GetDeviceByIDAndUserID(ctx context.Context, arg GetDeviceByIDAndUserIDParams) (Device, error) {
+	row := q.db.QueryRow(ctx, getDeviceByIDAndUserID, arg.DeviceID, arg.UserID)
+	var i Device
+	err := row.Scan(
+		&i.DeviceID,
+		&i.UserID,
+		&i.LastSeen,
+		&i.DeviceName,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT user_id, username, pwhash, role FROM Users 
 WHERE user_id = $1 LIMIT 1

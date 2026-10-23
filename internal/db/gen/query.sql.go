@@ -8,25 +8,31 @@ package dbqueries
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 const createDevice = `-- name: CreateDevice :one
 INSERT INTO Devices (
-  user_id, last_seen, device_name
+  device_id, user_id, last_seen, device_name
 ) VALUES (
-  $1, $2, $3
+  ?1, ?2, ?3, ?4
 ) RETURNING device_id, user_id, last_seen, device_name
 `
 
 type CreateDeviceParams struct {
-	UserID     pgtype.UUID
-	LastSeen   pgtype.Timestamptz
+	DeviceID   uuid.UUID
+	UserID     uuid.UUID
+	LastSeen   int64
 	DeviceName string
 }
 
 func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error) {
-	row := q.db.QueryRow(ctx, createDevice, arg.UserID, arg.LastSeen, arg.DeviceName)
+	row := q.db.QueryRowContext(ctx, createDevice,
+		arg.DeviceID,
+		arg.UserID,
+		arg.LastSeen,
+		arg.DeviceName,
+	)
 	var i Device
 	err := row.Scan(
 		&i.DeviceID,
@@ -39,20 +45,26 @@ func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Dev
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO Users (
-  username, pwhash, role
+  user_id, username, pwhash, role
 ) VALUES (
-  $1, $2, $3
+  ?1, ?2, ?3, ?4
 ) RETURNING user_id, username, pwhash, role
 `
 
 type CreateUserParams struct {
+	UserID   uuid.UUID
 	Username string
 	Pwhash   string
-	Role     int32
+	Role     int64
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Pwhash, arg.Role)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.UserID,
+		arg.Username,
+		arg.Pwhash,
+		arg.Role,
+	)
 	var i User
 	err := row.Scan(
 		&i.UserID,
@@ -65,31 +77,31 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 
 const deleteDevice = `-- name: DeleteDevice :exec
 DELETE FROM Devices
-WHERE device_id = $1
+WHERE device_id = ?1
 `
 
-func (q *Queries) DeleteDevice(ctx context.Context, deviceID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteDevice, deviceID)
+func (q *Queries) DeleteDevice(ctx context.Context, deviceID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteDevice, deviceID)
 	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM Users
-WHERE user_id = $1
+WHERE user_id = ?1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUser, userID)
+func (q *Queries) DeleteUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, userID)
 	return err
 }
 
 const getAllDevicesFromUser = `-- name: GetAllDevicesFromUser :many
 SELECT device_id, user_id, last_seen, device_name FROM Devices
-WHERE user_id = $1
+WHERE user_id = ?1
 `
 
-func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID) ([]Device, error) {
-	rows, err := q.db.Query(ctx, getAllDevicesFromUser, userID)
+func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID uuid.UUID) ([]Device, error) {
+	rows, err := q.db.QueryContext(ctx, getAllDevicesFromUser, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +119,9 @@ func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID)
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -115,11 +130,11 @@ func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID)
 
 const getDeviceByID = `-- name: GetDeviceByID :one
 SELECT device_id, user_id, last_seen, device_name FROM Devices
-WHERE device_id = $1 LIMIT 1
+WHERE device_id = ?1 LIMIT 1
 `
 
-func (q *Queries) GetDeviceByID(ctx context.Context, deviceID pgtype.UUID) (Device, error) {
-	row := q.db.QueryRow(ctx, getDeviceByID, deviceID)
+func (q *Queries) GetDeviceByID(ctx context.Context, deviceID uuid.UUID) (Device, error) {
+	row := q.db.QueryRowContext(ctx, getDeviceByID, deviceID)
 	var i Device
 	err := row.Scan(
 		&i.DeviceID,
@@ -132,16 +147,16 @@ func (q *Queries) GetDeviceByID(ctx context.Context, deviceID pgtype.UUID) (Devi
 
 const getDeviceByIDAndUserID = `-- name: GetDeviceByIDAndUserID :one
 SELECT device_id, user_id, last_seen, device_name FROM Devices
-WHERE device_id = $1 and user_id = $2 LIMIT 1
+WHERE device_id = ?1 and user_id = ?2 LIMIT 1
 `
 
 type GetDeviceByIDAndUserIDParams struct {
-	DeviceID pgtype.UUID
-	UserID   pgtype.UUID
+	DeviceID uuid.UUID
+	UserID   uuid.UUID
 }
 
 func (q *Queries) GetDeviceByIDAndUserID(ctx context.Context, arg GetDeviceByIDAndUserIDParams) (Device, error) {
-	row := q.db.QueryRow(ctx, getDeviceByIDAndUserID, arg.DeviceID, arg.UserID)
+	row := q.db.QueryRowContext(ctx, getDeviceByIDAndUserID, arg.DeviceID, arg.UserID)
 	var i Device
 	err := row.Scan(
 		&i.DeviceID,
@@ -154,11 +169,11 @@ func (q *Queries) GetDeviceByIDAndUserID(ctx context.Context, arg GetDeviceByIDA
 
 const getUserByID = `-- name: GetUserByID :one
 SELECT user_id, username, pwhash, role FROM Users 
-WHERE user_id = $1 LIMIT 1
+WHERE user_id = ?1 LIMIT 1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByID, userID)
+func (q *Queries) GetUserByID(ctx context.Context, userID uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, userID)
 	var i User
 	err := row.Scan(
 		&i.UserID,
@@ -171,11 +186,11 @@ func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (User, er
 
 const getUserByName = `-- name: GetUserByName :one
 SELECT user_id, username, pwhash, role FROM Users 
-WHERE username = $1 LIMIT 1
+WHERE username = ?1 LIMIT 1
 `
 
 func (q *Queries) GetUserByName(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByName, username)
+	row := q.db.QueryRowContext(ctx, getUserByName, username)
 	var i User
 	err := row.Scan(
 		&i.UserID,
@@ -192,7 +207,7 @@ ORDER BY device_id
 `
 
 func (q *Queries) ListDevices(ctx context.Context) ([]Device, error) {
-	rows, err := q.db.Query(ctx, listDevices)
+	rows, err := q.db.QueryContext(ctx, listDevices)
 	if err != nil {
 		return nil, err
 	}
@@ -210,6 +225,9 @@ func (q *Queries) ListDevices(ctx context.Context) ([]Device, error) {
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -222,7 +240,7 @@ ORDER BY user_id
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
-	rows, err := q.db.Query(ctx, listUsers)
+	rows, err := q.db.QueryContext(ctx, listUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +258,9 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 		}
 		items = append(items, i)
 	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -248,16 +269,16 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 
 const updateUserPW = `-- name: UpdateUserPW :exec
 UPDATE Users
-  set pwhash = $2
-WHERE user_id = $1
+  set pwhash = ?1
+WHERE user_id = ?2
 `
 
 type UpdateUserPWParams struct {
-	UserID pgtype.UUID
 	Pwhash string
+	UserID uuid.UUID
 }
 
 func (q *Queries) UpdateUserPW(ctx context.Context, arg UpdateUserPWParams) error {
-	_, err := q.db.Exec(ctx, updateUserPW, arg.UserID, arg.Pwhash)
+	_, err := q.db.ExecContext(ctx, updateUserPW, arg.Pwhash, arg.UserID)
 	return err
 }

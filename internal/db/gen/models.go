@@ -5,19 +5,19 @@
 package dbqueries
 
 import (
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type Device struct {
-	DeviceID   pgtype.UUID
-	UserID     pgtype.UUID
-	LastSeen   pgtype.Timestamptz
+	DeviceID   uuid.UUID
+	UserID     uuid.UUID
+	LastSeen   int64
 	DeviceName string
 }
 
 type User struct {
-	UserID   pgtype.UUID
+	UserID   uuid.UUID
 	Username string
 	Pwhash   string
-	Role     int32
+	Role     int64
 }

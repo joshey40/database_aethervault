@@ -8,19 +8,12 @@ import (
 
 type Config struct {
 	Develop bool `koanf:"develop"`
-	DB      DB   `koanf:"db"`
 	API     API  `koanf:"api"`
 }
 
-type DB struct {
-	Host string `koanf:"host"`
-	User string `koanf:"dbuser"`
-	Name string `koanf:"dbname"`
-	Port int    `koanf:"port"`
-}
-
 type API struct {
-	Port int `koanf:"port"`
+	Host string `koanf:"host"`
+	Port int    `koanf:"port"`
 }
 
 func LoadConf(path string) (*Config, error) {

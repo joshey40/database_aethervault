@@ -97,7 +97,7 @@ func main() {
 
 	// creating  the router
 	r := api.CreateRouter(config, userHandler, middlewares, tokenAuth)
-	listenString := fmt.Sprintf(":%d", config.API.Port)
+	listenString := fmt.Sprintf("%s:%d", config.API.Host, config.API.Port)
 
 	// creating the server
 	server := http.Server{
@@ -107,7 +107,7 @@ func main() {
 
 	// starting the server
 	go func() {
-		zap.L().Info("Server started and listening", zap.Int("Port", config.API.Port))
+		zap.L().Info("Server started and listening", zap.String("Host", config.API.Host), zap.Int("Port", config.API.Port))
 		err := server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zap.L().Fatal("server stopped for weird reason", zap.Error(err))

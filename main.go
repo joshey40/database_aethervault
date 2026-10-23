@@ -52,7 +52,7 @@ func main() {
 	// load env file and vars
 	err = godotenv.Load()
 	if err != nil {
-		zap.L().Error("Loading Env file failed", zap.Error(err))
+		zap.L().Fatal("Loading Env file failed", zap.Error(err))
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")

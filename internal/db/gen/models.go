@@ -2,14 +2,22 @@
 // versions:
 //   sqlc v1.30.0
 
-package dbconn
+package dbqueries
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Device struct {
+	DeviceID   pgtype.UUID
+	UserID     pgtype.UUID
+	LastSeen   pgtype.Timestamptz
+	DeviceName string
+}
+
 type User struct {
-	Uuid     pgtype.UUID
+	UserID   pgtype.UUID
 	Username string
 	Pwhash   string
+	Role     int32
 }

@@ -1,6 +1,8 @@
-debug: true
+develop: true
 db:
   dbuser: app
   dbname: aethervault
   host: 127.0.0.1
-  port: 5432
+  port: 5433
+api:
+  port: 3333

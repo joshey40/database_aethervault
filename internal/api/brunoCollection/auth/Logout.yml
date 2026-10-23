@@ -1,0 +1,24 @@
+info:
+  name: Logout
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{localhost}}/auth/logout"
+  headers:
+    - name: Authorization
+      value: BEARER   {{token}}
+  auth: inherit
+
+runtime:
+  variables:
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiIwMWExNjM4MS03YjdkLTdiMWMtYTIxYi1lZTQ2MTQ3MDJhMGUiLCJ1c2VyX2lkIjoiMDFhMTYzNjktOGI3Ny03OGRjLWJjMTktYTg1NjBkMjgyZTk5In0.i16etbZ8wkg79XoW7KPc-nZnfEChoqPuBl5I1TR9VDc
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

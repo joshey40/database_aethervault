@@ -1,34 +1,54 @@
--- name: CreateUserTable :exec
-CREATE TABLE IF NOT EXISTS users (
-  uuid uuid DEFAULT uuidv7() PRIMARY KEY,
-  username text UNIQUE NOT NULL,
-  pwhash text NOT NULL
-);
-
 -- name: ListUsers :many
-SELECT * FROM users
-ORDER BY uuid;
+SELECT * FROM Users
+ORDER BY user_id;
 
 -- name: CreateUser :one
-INSERT INTO users (
-  username, pwhash
+INSERT INTO Users (
+  username, pwhash, role
 ) VALUES (
-  $1, $2
+  $1, $2, $3
 ) RETURNING *;
 
 -- name: GetUserByName :one
-SELECT * FROM users 
-WHERE username = $1 Limit 1;
+SELECT * FROM Users 
+WHERE username = $1 LIMIT 1;
 
--- name: GetUserByUUID :one
-SELECT * FROM users 
-WHERE uuid = $1 Limit 1;
+-- name: GetUserByID :one
+SELECT * FROM Users 
+WHERE user_id = $1 LIMIT 1;
 
 -- name: DeleteUser :exec
-DELETE FROM users
-WHERE uuid = $1;
+DELETE FROM Users
+WHERE user_id = $1;
 
 -- name: UpdateUserPW :exec
-UPDATE users
+UPDATE Users
   set pwhash = $2
-WHERE uuid = $1;
+WHERE user_id = $1;
+
+-- name: ListDevices :many
+SELECT * FROM Devices
+ORDER BY device_id;
+
+-- name: CreateDevice :one
+INSERT INTO Devices (
+  user_id, last_seen, device_name
+) VALUES (
+  $1, $2, $3
+) RETURNING *;
+
+-- name: GetAllDevicesFromUser :many
+SELECT * FROM Devices
+WHERE user_id = $1;
+
+-- name: GetDeviceByID :one
+SELECT * FROM Devices
+WHERE device_id = $1 LIMIT 1;
+
+-- name: DeleteDevice :exec
+DELETE FROM Devices
+WHERE device_id = $1;
+
+-- name: GetDeviceByIDAndUserID :one
+SELECT * FROM Devices
+WHERE device_id = $1 and user_id = $2 LIMIT 1;

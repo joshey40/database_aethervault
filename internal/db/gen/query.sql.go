@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: query.sql
 
-package dbconn
+package dbqueries
 
 import (
 	"context"
@@ -11,76 +11,214 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (
-  username, pwhash
+const createDevice = `-- name: CreateDevice :one
+INSERT INTO Devices (
+  user_id, last_seen, device_name
 ) VALUES (
-  $1, $2
-) RETURNING uuid, username, pwhash
+  $1, $2, $3
+) RETURNING device_id, user_id, last_seen, device_name
+`
+
+type CreateDeviceParams struct {
+	UserID     pgtype.UUID
+	LastSeen   pgtype.Timestamptz
+	DeviceName string
+}
+
+func (q *Queries) CreateDevice(ctx context.Context, arg CreateDeviceParams) (Device, error) {
+	row := q.db.QueryRow(ctx, createDevice, arg.UserID, arg.LastSeen, arg.DeviceName)
+	var i Device
+	err := row.Scan(
+		&i.DeviceID,
+		&i.UserID,
+		&i.LastSeen,
+		&i.DeviceName,
+	)
+	return i, err
+}
+
+const createUser = `-- name: CreateUser :one
+INSERT INTO Users (
+  username, pwhash, role
+) VALUES (
+  $1, $2, $3
+) RETURNING user_id, username, pwhash, role
 `
 
 type CreateUserParams struct {
 	Username string
 	Pwhash   string
+	Role     int32
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Pwhash)
+	row := q.db.QueryRow(ctx, createUser, arg.Username, arg.Pwhash, arg.Role)
 	var i User
-	err := row.Scan(&i.Uuid, &i.Username, &i.Pwhash)
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Pwhash,
+		&i.Role,
+	)
 	return i, err
 }
 
-const createUserTable = `-- name: CreateUserTable :exec
-CREATE TABLE IF NOT EXISTS users (
-  uuid uuid DEFAULT uuidv7() PRIMARY KEY,
-  username text UNIQUE NOT NULL,
-  pwhash text NOT NULL
-)
+const deleteDevice = `-- name: DeleteDevice :exec
+DELETE FROM Devices
+WHERE device_id = $1
 `
 
-func (q *Queries) CreateUserTable(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, createUserTable)
+func (q *Queries) DeleteDevice(ctx context.Context, deviceID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDevice, deviceID)
 	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users
-WHERE uuid = $1
+DELETE FROM Users
+WHERE user_id = $1
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, uuid pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteUser, uuid)
+func (q *Queries) DeleteUser(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUser, userID)
 	return err
 }
 
+const getAllDevicesFromUser = `-- name: GetAllDevicesFromUser :many
+SELECT device_id, user_id, last_seen, device_name FROM Devices
+WHERE user_id = $1
+`
+
+func (q *Queries) GetAllDevicesFromUser(ctx context.Context, userID pgtype.UUID) ([]Device, error) {
+	rows, err := q.db.Query(ctx, getAllDevicesFromUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Device
+	for rows.Next() {
+		var i Device
+		if err := rows.Scan(
+			&i.DeviceID,
+			&i.UserID,
+			&i.LastSeen,
+			&i.DeviceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDeviceByID = `-- name: GetDeviceByID :one
+SELECT device_id, user_id, last_seen, device_name FROM Devices
+WHERE device_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetDeviceByID(ctx context.Context, deviceID pgtype.UUID) (Device, error) {
+	row := q.db.QueryRow(ctx, getDeviceByID, deviceID)
+	var i Device
+	err := row.Scan(
+		&i.DeviceID,
+		&i.UserID,
+		&i.LastSeen,
+		&i.DeviceName,
+	)
+	return i, err
+}
+
+const getDeviceByIDAndUserID = `-- name: GetDeviceByIDAndUserID :one
+SELECT device_id, user_id, last_seen, device_name FROM Devices
+WHERE device_id = $1 and user_id = $2 LIMIT 1
+`
+
+type GetDeviceByIDAndUserIDParams struct {
+	DeviceID pgtype.UUID
+	UserID   pgtype.UUID
+}
+
+func (q *Queries) GetDeviceByIDAndUserID(ctx context.Context, arg GetDeviceByIDAndUserIDParams) (Device, error) {
+	row := q.db.QueryRow(ctx, getDeviceByIDAndUserID, arg.DeviceID, arg.UserID)
+	var i Device
+	err := row.Scan(
+		&i.DeviceID,
+		&i.UserID,
+		&i.LastSeen,
+		&i.DeviceName,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT user_id, username, pwhash, role FROM Users 
+WHERE user_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, userID pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, userID)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Pwhash,
+		&i.Role,
+	)
+	return i, err
+}
+
 const getUserByName = `-- name: GetUserByName :one
-SELECT uuid, username, pwhash FROM users 
-WHERE username = $1 Limit 1
+SELECT user_id, username, pwhash, role FROM Users 
+WHERE username = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByName(ctx context.Context, username string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByName, username)
 	var i User
-	err := row.Scan(&i.Uuid, &i.Username, &i.Pwhash)
+	err := row.Scan(
+		&i.UserID,
+		&i.Username,
+		&i.Pwhash,
+		&i.Role,
+	)
 	return i, err
 }
 
-const getUserByUUID = `-- name: GetUserByUUID :one
-SELECT uuid, username, pwhash FROM users 
-WHERE uuid = $1 Limit 1
+const listDevices = `-- name: ListDevices :many
+SELECT device_id, user_id, last_seen, device_name FROM Devices
+ORDER BY device_id
 `
 
-func (q *Queries) GetUserByUUID(ctx context.Context, uuid pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByUUID, uuid)
-	var i User
-	err := row.Scan(&i.Uuid, &i.Username, &i.Pwhash)
-	return i, err
+func (q *Queries) ListDevices(ctx context.Context) ([]Device, error) {
+	rows, err := q.db.Query(ctx, listDevices)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Device
+	for rows.Next() {
+		var i Device
+		if err := rows.Scan(
+			&i.DeviceID,
+			&i.UserID,
+			&i.LastSeen,
+			&i.DeviceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT uuid, username, pwhash FROM users
-ORDER BY uuid
+SELECT user_id, username, pwhash, role FROM Users
+ORDER BY user_id
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -92,7 +230,12 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 	var items []User
 	for rows.Next() {
 		var i User
-		if err := rows.Scan(&i.Uuid, &i.Username, &i.Pwhash); err != nil {
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Username,
+			&i.Pwhash,
+			&i.Role,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -104,17 +247,17 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 }
 
 const updateUserPW = `-- name: UpdateUserPW :exec
-UPDATE users
+UPDATE Users
   set pwhash = $2
-WHERE uuid = $1
+WHERE user_id = $1
 `
 
 type UpdateUserPWParams struct {
-	Uuid   pgtype.UUID
+	UserID pgtype.UUID
 	Pwhash string
 }
 
 func (q *Queries) UpdateUserPW(ctx context.Context, arg UpdateUserPWParams) error {
-	_, err := q.db.Exec(ctx, updateUserPW, arg.Uuid, arg.Pwhash)
+	_, err := q.db.Exec(ctx, updateUserPW, arg.UserID, arg.Pwhash)
 	return err
 }

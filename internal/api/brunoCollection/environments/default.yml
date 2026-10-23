@@ -1,0 +1,5 @@
+name: default
+variables:
+  - name: localhost
+    value: localhost:3333
+    description: ""

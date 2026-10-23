@@ -85,6 +85,10 @@ func (h *UserHandler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusOK)
 }
 
+func (h *UserHandler) Status(w http.ResponseWriter, r *http.Request) {
+	render.Status(r, http.StatusOK)
+}
+
 func MakeErrResponse(status int, text string) *ErrResponse {
 	return &ErrResponse{
 		HTTPStatusCode: status,

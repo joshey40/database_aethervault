@@ -30,7 +30,13 @@ func CreateRouter(config *config.Config, h *handler.UserHandler, mw *Middlewares
 			r.Use(mw.Authenticator(tokenAuth))
 
 			r.Post("/", h.LogoutUser)
+		})
 
+		r.Route("/status", func(r chi.Router) {
+			r.Use(jwtauth.Verifier(tokenAuth))
+			r.Use(mw.Authenticator(tokenAuth))
+
+			r.Get("/", h.Status)
 		})
 	})
 

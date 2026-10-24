@@ -2,12 +2,12 @@ package services
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/alexedwards/argon2id"
 	"github.com/go-chi/jwtauth/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/google/uuid"
 	dbqueries "github.com/joshey40/database_aethervault/internal/db/gen"
 	"github.com/lestrrat-go/jwx/v3/jwt"
 	"go.uber.org/zap"
@@ -18,53 +18,71 @@ type Authservice interface {
 }
 
 type UserService struct {
-	Pool      *pgxpool.Pool
+	DB        *sql.DB
 	Queries   *dbqueries.Queries
 	TokenAuth *jwtauth.JWTAuth
 }
 
-func NewUserService(pool *pgxpool.Pool, queries *dbqueries.Queries, tokenAuth *jwtauth.JWTAuth) *UserService {
+func NewUserService(db *sql.DB, queries *dbqueries.Queries, tokenAuth *jwtauth.JWTAuth) *UserService {
 	return &UserService{
-		Pool:      pool,
+		DB:        db,
 		Queries:   queries,
 		TokenAuth: tokenAuth,
 	}
 }
 
-func (s *UserService) CreateUser(ctx context.Context, username string, passwd string, role int32, deviceName string) (string, error) {
+func (s *UserService) CreateUser(ctx context.Context, username string, passwd string, role int64, deviceName string) (string, error) {
 	// check if user already exists
-	oldUser, err := s.Queries.GetUserByName(ctx, username)
-	if oldUser.UserID.String() != "" {
+	_, err := s.Queries.GetUserByName(ctx, username)
+	if err == nil {
 		return "", ErrUserAlreadyExists
 	}
 
 	// create password hash
 	hash, err := argon2id.CreateHash(passwd, argon2id.DefaultParams)
 	if err != nil {
-		return "", err
+		zap.L().Error("could not generate PW hash", zap.String("passwd entered", passwd), zap.Error(err))
+		return "", ErrInternal
 	}
+
+	// create user uuid
+	userUUID, err := uuid.NewV7()
+	if err != nil {
+		zap.L().Error("could not generate UUID", zap.Error(err))
+		return "", ErrInternal
+	}
+
+	// create user
 	userParams := dbqueries.CreateUserParams{
+		UserID:   userUUID,
 		Username: username,
 		Pwhash:   hash,
 		Role:     role,
 	}
-
-	// create user
 	user, err := s.Queries.CreateUser(ctx, userParams)
 	if err != nil {
-		return "", err
+		zap.L().Error("could not create user", zap.Error(err))
+		return "", ErrInternal
+	}
+
+	// create device uuid
+	deviceUUID, err := uuid.NewV7()
+	if err != nil {
+		zap.L().Error("could not generate UUID", zap.Error(err))
+		return "", ErrInternal
 	}
 
 	// create device
 	deviceParams := dbqueries.CreateDeviceParams{
+		DeviceID:   deviceUUID,
 		UserID:     user.UserID,
-		LastSeen:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		LastSeen:   time.Now().UnixMilli(),
 		DeviceName: deviceName,
 	}
-
 	device, err := s.Queries.CreateDevice(ctx, deviceParams)
 	if err != nil {
-		return "", err
+		zap.L().Error("could not create device", zap.Error(err))
+		return "", ErrInternal
 	}
 
 	// create JWT
@@ -87,17 +105,29 @@ func (s *UserService) LoginUser(ctx context.Context, username string, passwd str
 		zap.L().Warn("login attempt with wrong password", zap.String("username", username))
 		return "", ErrInvalidLoginData
 	}
+	if err != nil {
+		zap.L().Error("could not compare password to passwordhash", zap.Error(err))
+		return "", ErrInternal
+	}
+
+	// create device uuid
+	deviceUUID, err := uuid.NewV7()
+	if err != nil {
+		zap.L().Error("could not generate UUID", zap.Error(err))
+		return "", ErrInternal
+	}
 
 	// create device
 	deviceParams := dbqueries.CreateDeviceParams{
+		DeviceID:   deviceUUID,
 		UserID:     user.UserID,
-		LastSeen:   pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		LastSeen:   time.Now().UnixMilli(),
 		DeviceName: deviceName,
 	}
-
 	device, err := s.Queries.CreateDevice(ctx, deviceParams)
 	if err != nil {
-		return "", err
+		zap.L().Error("could not create device", zap.Error(err))
+		return "", ErrInternal
 	}
 
 	// create JWT
@@ -112,7 +142,7 @@ func (s *UserService) LogoutUser(ctx context.Context) error {
 		zap.L().Error("could not logout user")
 		return err
 	}
-	deviceUUID := &pgtype.UUID{}
+	deviceUUID := &uuid.UUID{}
 	deviceUUID.Scan(deviceID)
 
 	err = s.Queries.DeleteDevice(ctx, *deviceUUID)
@@ -128,13 +158,13 @@ func (s *UserService) CheckJWT(ctx context.Context) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	deviceUUID := &pgtype.UUID{}
+	deviceUUID := &uuid.UUID{}
 	err = deviceUUID.Scan(deviceID)
 	if err != nil {
 		zap.L().Error("could not convert deviceID of type string to pgtype.UUID", zap.Error(err))
 		return "", "", ErrInternal
 	}
-	userUUID := &pgtype.UUID{}
+	userUUID := &uuid.UUID{}
 	err = userUUID.Scan(userID)
 	if err != nil {
 		zap.L().Error("could not convert userID of type string to pgtype.UUID", zap.Error(err))
@@ -148,11 +178,11 @@ func (s *UserService) CheckJWT(ctx context.Context) (string, string, error) {
 
 	device, err := s.Queries.GetDeviceByIDAndUserID(ctx, query)
 	if err != nil {
-		zap.L().Warn("Device with this deviceID for user with this userID not found", zap.String("DeviceID", deviceUUID.String()), zap.String("UserID", userUUID.String()))
+		zap.L().Warn("Device with this deviceID for user with this userID not found", zap.String("DeviceID", deviceID), zap.String("UserID", userID))
 		return "", "", ErrDeviceNotFound
 	}
-	if device.UserID.String() != userUUID.String() {
-		zap.L().Error("userID of jwt did not match userID of the provided device", zap.String("userID-jwt", userID), zap.String("userID-device", userUUID.String()))
+	if device.UserID != *userUUID {
+		zap.L().Error("userID of jwt did not match userID of the provided device", zap.String("userID-jwt", userID), zap.String("userID-device", device.UserID.String()))
 		return "", "", ErrInternal
 	}
 
@@ -162,7 +192,7 @@ func (s *UserService) CheckJWT(ctx context.Context) (string, string, error) {
 func extractFromJWT(ctx context.Context) (jwt.Token, string, string, error) {
 	token, claims, err := jwtauth.FromContext(ctx)
 	if err != nil {
-		zap.L().Error("JWT not valid or other error from verifier middleware", zap.Error(err))
+		zap.L().Warn("JWT not valid or other error from verifier middleware", zap.Error(err))
 		return nil, "", "", err
 	}
 	userID, ok := claims["user_id"].(string)

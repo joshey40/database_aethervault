@@ -6,7 +6,15 @@ info:
 http:
   method: GET
   url: "{{localhost}}/auth/status"
+  headers:
+    - name: Authorization
+      value: BEARER {{token}}
   auth: inherit
+
+runtime:
+  variables:
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiIwMWExNmUzMC1iMzYyLTczYmQtYjA1My1kOTQ4MjE2NmUyMTIiLCJ1c2VyX2lkIjoiMDFhMTZlMzAtYjM1Ni03ZWU5LTlkYWEtZDEzYzQwNzUxYzUwIn0.dCmC17y_ZV_3gmj3Q7Ihh6Ln8liKz4oLOSBTOA8ugr8
 
 settings:
   encodeUrl: true

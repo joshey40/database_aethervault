@@ -29,4 +29,5 @@ EXPOSE 3333
 
 USER nonroot:nonroot
 
+LABEL org.opencontainers.image.source=https://github.com/joshey40/database_aethervault
 ENTRYPOINT ["/app/aethervault"]

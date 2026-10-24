@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
 	"errors"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/go-chi/jwtauth/v5"
-	"github.com/joho/godotenv"
 	"github.com/joshey40/database_aethervault/internal/api"
 	"github.com/joshey40/database_aethervault/internal/config"
 	"github.com/joshey40/database_aethervault/internal/db"
@@ -49,19 +49,41 @@ func main() {
 	zap.L().Info("Welcome to the AETHERVAULT server")
 	zap.L().Info("Have fun building your decks and managing your collection")
 
-	// load env file and vars
-	err = godotenv.Load()
-	if err != nil {
-		zap.L().Fatal("Loading Env file failed", zap.Error(err))
+	var dbpath string
+	var jwtSecret string
+	if config.Develop {
+		// settings for developing
+		zap.L().Debug("Using develop settings for db and jwt")
+		dbpath = "devdb/database.db"
+		jwtSecret = "LetsHaveAGoodTime"
+	} else {
+		// settings for production
+		zap.L().Info("Using production settings")
+		dbpath = config.DBPath
+		if _, err := os.Stat(config.JWTPath); os.IsNotExist(err) {
+			// if no prior jwt secret exists, create it and save it
+			zap.L().Info("No prior jwt secret found, generating")
+			jwtSecret = rand.Text()
+			err = os.WriteFile(config.JWTPath, []byte(jwtSecret), 0644)
+			if err != nil {
+				zap.L().Fatal("could not write jwtsecret to file", zap.Error(err))
+			}
+		} else {
+			// if it exists, load it
+			zap.L().Info("Load jwt secret from file")
+			secret, err := os.ReadFile(config.JWTPath)
+			if err != nil {
+				zap.L().Fatal("could not read jwtsecret from file", zap.Error(err))
+			}
+			jwtSecret = string(secret)
+		}
 	}
-
-	jwtSecret := os.Getenv("JWT_SECRET")
 
 	// generate jokenAuth from secret
 	tokenAuth := jwtauth.New("HS256", []byte(jwtSecret), nil)
 
 	// create connection to database
-	db, err := db.Open(ctx, "database.db")
+	db, err := db.Open(ctx, dbpath)
 	if err != nil {
 		zap.L().Fatal("Creating db connection failed", zap.Error(err))
 	}

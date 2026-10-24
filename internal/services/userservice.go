@@ -192,7 +192,7 @@ func (s *UserService) CheckJWT(ctx context.Context) (string, string, error) {
 func extractFromJWT(ctx context.Context) (jwt.Token, string, string, error) {
 	token, claims, err := jwtauth.FromContext(ctx)
 	if err != nil {
-		zap.L().Error("JWT not valid or other error from verifier middleware", zap.Error(err))
+		zap.L().Warn("JWT not valid or other error from verifier middleware", zap.Error(err))
 		return nil, "", "", err
 	}
 	userID, ok := claims["user_id"].(string)

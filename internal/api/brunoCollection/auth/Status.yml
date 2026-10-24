@@ -14,7 +14,7 @@ http:
 runtime:
   variables:
     - name: token
-      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiIwMWExNjhkOC00MzBhLTdlYjMtOWFmOS05Yzc2MzZmOTExNGUiLCJ1c2VyX2lkIjoiMDFhMTY4ZDctMDZhZi03NWE2LWIzYTctMjExMTQ1OTUwNWVlIn0.n7o-XbD4CJHV5DyKiIcdMlHbyteXM5d1F2Kh-k34YyU
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXZpY2VfaWQiOiIwMWExNmUzMC1iMzYyLTczYmQtYjA1My1kOTQ4MjE2NmUyMTIiLCJ1c2VyX2lkIjoiMDFhMTZlMzAtYjM1Ni03ZWU5LTlkYWEtZDEzYzQwNzUxYzUwIn0.dCmC17y_ZV_3gmj3Q7Ihh6Ln8liKz4oLOSBTOA8ugr8
 
 settings:
   encodeUrl: true

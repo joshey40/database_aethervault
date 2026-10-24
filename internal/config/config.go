@@ -7,8 +7,10 @@ import (
 )
 
 type Config struct {
-	Develop bool `koanf:"develop"`
-	API     API  `koanf:"api"`
+	Develop bool   `koanf:"develop"`
+	API     API    `koanf:"api"`
+	DBPath  string `koanf:"dbpath"`
+	JWTPath string `koanf:"jwtpath"`
 }
 
 type API struct {

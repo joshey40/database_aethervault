@@ -10,9 +10,9 @@ http:
     type: json
     data: |-
       {
-        "username": "hello",
+        "username": "OrkanKuchen",
         "passwd": "IAmSoSecureXD",
-        "currDevice": "Surfraze"
+        "currDevice": "Surface"
       }
   auth: inherit
 

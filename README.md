@@ -17,3 +17,16 @@ To add a new migration, execute this command in the migration folder
 ```bash
 goose -s create [name] sql
 ```
+
+## Build and push docker container
+The project contains the dockerfile to turn the project into a docker container. To build the container: 
+
+```bash
+docker build -t ghcr.io/joshey40/database_aethervault:[version] .
+```
+
+And to push the container:
+
+```bash
+docker push ghcr.io/joshey40/database_aethervault:[version]
+```

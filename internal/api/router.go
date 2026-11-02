@@ -40,5 +40,7 @@ func CreateRouter(config *config.Config, h *handler.UserHandler, mw *Middlewares
 		})
 	})
 
+	r.Get("/alive", h.Status)
+
 	return r
 }

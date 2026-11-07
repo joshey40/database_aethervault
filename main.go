@@ -54,7 +54,11 @@ func main() {
 	if config.Develop {
 		// settings for developing
 		zap.L().Debug("Using develop settings for db and jwt")
-		dbpath = "devdb/database.db"
+		if config.InMemory {
+			dbpath = ":memory:"
+		} else {
+			dbpath = "./devdb/testdb.db"
+		}
 		jwtSecret = "LetsHaveAGoodTime"
 	} else {
 		// settings for production
@@ -110,15 +114,17 @@ func main() {
 
 	// create services
 	userService := services.NewUserService(db, queries, tokenAuth)
+	syncService := services.NewSyncService(db, queries)
 
 	// create handlers
 	userHandler := handler.NewUserHandler(userService)
+	syncHandler := handler.NewSyncHandler(syncService)
 
 	// create middlewares
 	middlewares := api.NewMiddlewares(userService)
 
 	// creating  the router
-	r := api.CreateRouter(config, userHandler, middlewares, tokenAuth)
+	r := api.CreateRouter(config, userHandler, syncHandler, middlewares, tokenAuth)
 	listenString := fmt.Sprintf("%s:%d", config.API.Host, config.API.Port)
 
 	// creating the server

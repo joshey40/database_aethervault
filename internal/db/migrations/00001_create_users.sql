@@ -3,7 +3,8 @@ CREATE TABLE Users (
   user_id text PRIMARY KEY,
   username text UNIQUE NOT NULL,
   pwhash text NOT NULL,
-  role int NOT NULL
+  role int NOT NULL,
+  collection_version int NOT NULL
 );
 
 -- +goose Down

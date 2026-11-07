@@ -48,7 +48,7 @@ INSERT INTO Users (
   user_id, username, pwhash, role
 ) VALUES (
   ?1, ?2, ?3, ?4
-) RETURNING user_id, username, pwhash, role
+) RETURNING user_id, username, pwhash, role, collection_version
 `
 
 type CreateUserParams struct {
@@ -71,6 +71,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
+		&i.CollectionVersion,
 	)
 	return i, err
 }
@@ -168,7 +169,7 @@ func (q *Queries) GetDeviceByIDAndUserID(ctx context.Context, arg GetDeviceByIDA
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT user_id, username, pwhash, role FROM Users 
+SELECT user_id, username, pwhash, role, collection_version FROM Users 
 WHERE user_id = ?1 LIMIT 1
 `
 
@@ -180,12 +181,13 @@ func (q *Queries) GetUserByID(ctx context.Context, userID uuid.UUID) (User, erro
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
+		&i.CollectionVersion,
 	)
 	return i, err
 }
 
 const getUserByName = `-- name: GetUserByName :one
-SELECT user_id, username, pwhash, role FROM Users 
+SELECT user_id, username, pwhash, role, collection_version FROM Users 
 WHERE username = ?1 LIMIT 1
 `
 
@@ -197,6 +199,7 @@ func (q *Queries) GetUserByName(ctx context.Context, username string) (User, err
 		&i.Username,
 		&i.Pwhash,
 		&i.Role,
+		&i.CollectionVersion,
 	)
 	return i, err
 }
@@ -235,7 +238,7 @@ func (q *Queries) ListDevices(ctx context.Context) ([]Device, error) {
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT user_id, username, pwhash, role FROM Users
+SELECT user_id, username, pwhash, role, collection_version FROM Users
 ORDER BY user_id
 `
 
@@ -253,6 +256,7 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.Username,
 			&i.Pwhash,
 			&i.Role,
+			&i.CollectionVersion,
 		); err != nil {
 			return nil, err
 		}

@@ -5,8 +5,24 @@
 package dbqueries
 
 import (
+	"database/sql"
+
 	"github.com/google/uuid"
 )
+
+type Collectionentries struct {
+	CollectionEntryID string
+	ScryfallID        string
+	IsProxy           int64
+	IsAltered         int64
+	IsSigned          int64
+	Quality           int64
+	UserID            string
+	Finish            int64
+	FolderID          string
+	VersionAt         int64
+	IsOwned           int64
+}
 
 type Device struct {
 	DeviceID   uuid.UUID
@@ -15,9 +31,24 @@ type Device struct {
 	DeviceName string
 }
 
+type Folders struct {
+	FolderID     string
+	FolderName   string
+	ParentFolder sql.NullString
+	IsPrivate    int64
+	Color        string
+	IsDeck       int64
+	Format       sql.NullString
+	Description  string
+	Bracket      sql.NullInt64
+	UserID       string
+	VersionAt    int64
+}
+
 type User struct {
-	UserID   uuid.UUID
-	Username string
-	Pwhash   string
-	Role     int64
+	UserID            uuid.UUID
+	Username          string
+	Pwhash            string
+	Role              int64
+	CollectionVersion int64
 }

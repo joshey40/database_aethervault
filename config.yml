@@ -1,4 +1,5 @@
 develop: true
+in-memory: false
 dbpath: /data/avdatabase.db
 jwtpath: /data/secret
 api:
